@@ -532,3 +532,148 @@ while True:
         print(f"Expression '{expr}' is VALID ")
     else:
         print(f"Expression '{expr}' is INVALID ")
+---------------------withoutscanner--------------------------------
+cal.y
+%{
+#include <stdio.h>
+#include <ctype.h>
+#include <stdlib.h>
+
+int yylex();
+void yyerror(const char *s);
+%}
+
+%token NUMBER
+
+%%
+
+input : expr '\n'  { printf("Result: %d\n", $1); }
+;
+
+expr : expr '+' term { $$ = $1 + $3; }
+     | expr '-' term { $$ = $1 - $3; }
+     | term          { $$ = $1; }
+;
+
+term : term '*' factor { $$ = $1 * $3; }
+     | term '/' factor {
+            if ($3 == 0) {
+                printf("Error: Division by zero\n");
+                exit(1);
+            }
+            $$ = $1 / $3;
+       }
+     | factor          { $$ = $1; }
+;
+
+factor : NUMBER        { $$ = $1; }
+       | '(' expr ')'  { $$ = $2; }
+;
+
+%%
+
+int yylex(){
+    int c;
+
+    while ((c = getchar()) == ' ' || c == '\t');
+
+    if (isdigit(c)){
+        ungetc(c, stdin);
+        scanf("%d", &yylval);
+        return NUMBER;
+    }
+
+    if (c == '\n')
+        return '\n';
+
+    return c;
+}
+
+void yyerror(const char *s){
+    printf("Invalid Expression\n");
+}
+
+int main(){
+    printf("Enter: ");
+    yyparse();
+    return 0;
+}   
+
+compile code:
+bison -d cal.y
+gcc cal.tab.c -o cal
+./cal
+------------------wuth scanner----------------------------
+
+cal.y
+%{
+#include <stdio.h>
+#include <stdlib.h>
+
+int yylex();
+void yyerror(const char *s);
+%}
+
+%token NUMBER
+
+%%
+
+input : expr '\n'  { printf("Result: %d\n", $1); }
+;
+
+expr : expr '+' term { $$ = $1 + $3; }
+     | expr '-' term { $$ = $1 - $3; }
+     | term          { $$ = $1; }
+;
+
+term : term '*' factor { $$ = $1 * $3; }
+     | term '/' factor {
+            if ($3 == 0) {
+                printf("Error: Division by zero\n");
+                exit(1);
+            }
+            $$ = $1 / $3;
+       }
+     | factor { $$ = $1; }
+;
+
+factor : NUMBER       { $$ = $1; }
+       | '(' expr ')' { $$ = $2; }
+;
+
+%%
+
+void yyerror(const char *s){
+    printf("Invalid Expression\n");
+}
+
+int main(){
+    printf("Enter: ");
+    yyparse();
+    return 0;
+}
+cal.l
+%{
+#include "cal.tab.h"
+#include <stdlib.h>
+%}
+
+%%
+
+[0-9]+      { yylval = atoi(yytext); return NUMBER; }
+[ \t]       ;   /* ignore spaces */
+\n          return '\n';
+.           return yytext[0];
+
+%%
+
+int yywrap(){
+    return 1;
+}
+
+just for division you this remaining above ll(1)
+bison -d cal.y
+flex cal.l
+gcc lex.yy.c cal.tab.c -o cal -lfl
+./cal
+-----------------------------------------
